@@ -54,14 +54,14 @@ public class FileControllerImpl implements FileController {
             }
 
             // 读取文件内容
-            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+            //String content = new String(file.getBytes(), StandardCharsets.UTF_8);
 
             UserFile uf = UserFile.builder()
                     .userId(userId)
                     .originalFileName(original)
                     .storedFileName(stored)
                     .storagePath(target.toString())
-                    .fileContent(content)  // 保存文件内容
+                    //.fileContent(content)  // 保存文件内容
                     .fileType(fileType)
                     .fileSize(file.getSize())
                     .deleted(false)
