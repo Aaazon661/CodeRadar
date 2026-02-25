@@ -1,0 +1,31 @@
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/coderadar?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  web:
+    resources:
+      static-locations: classpath:/static/
+  mvc:
+    static-path-pattern: /**
+
+mybatis:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 服务器配置
+server:
+  port: 8080
+
+# AI 配置
+ai:
+  api:
+    url: https://api.deepseek.com/v1/chat/completions  # 或 OpenAI/智谱的 URL
+    key: sk-cdfd76cdd3e24b6d90150885656574b6  # 替换为你的真实 API Key

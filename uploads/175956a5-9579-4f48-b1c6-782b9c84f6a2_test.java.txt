@@ -1,0 +1,16 @@
+public class Test {
+     public static void main(String[] args) {
+         // 硬编码密码 - 安全问题
+         String password = "123456";
+ 
+         // 未使用的变量
+         int unusedVar = 100;
+ 
+         // 空指针风险
+         String str = null;
+         System.out.println(str.length());
+ 
+         // 资源未关闭
+         java.io.FileInputStream fis = new java.io.FileInputStream("test.txt");
+     }
+ }
