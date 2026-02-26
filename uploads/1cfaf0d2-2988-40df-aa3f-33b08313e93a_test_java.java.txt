@@ -1,0 +1,38 @@
+public class BuggySample {
+
+    public static void main(String[] args) throws Exception {
+        System.out.println("=== BuggySample Demo ===");
+
+       
+        String username = null;
+        System.out.println("用户名长度：" + username.length()); // 这里会 NPE
+
+               int total = 100;
+        int count = 0; // 实际上有可能为 0
+        int avg = total / count;
+        System.out.println("平均值：" + avg);
+
+               java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.FileReader("not-exists.txt")); // 这里文件名写死了
+        String line;
+        while ((line = reader.readLine()) != null) {
+            System.out.println(line.toUpperCase());
+        }
+                try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+                   }
+
+               String userInputName = "admin' OR '1'='1";
+        String sql = "SELECT * FROM users WHERE name = '" + userInputName + "'";
+        System.out.println("即将执行的 SQL：" + sql);
+       
+                int[] scores = {90, 60, 75, 100, 88};
+        int max = Integer.MAX_VALUE; // 写错了，本来应该是 MIN_VALUE
+        for (int s : scores) {
+            if (s > max) {                 max = s;
+            }
+        }
+        System.out.println("数组中的最大值：" + max);
+    }
+}

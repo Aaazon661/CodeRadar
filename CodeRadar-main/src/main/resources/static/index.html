@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodeRadar - 代码审查系统</title>
     <style>
+        :root {
+            --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC",
+                "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+        }
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-sans);
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -258,10 +265,14 @@
         try {
             const stored = localStorage.getItem('coderadar_current_user');
             if (stored) {
-                // 仅用于提示上次登录过谁，不自动锁定 userId、不自动进入业务页面
                 currentUser = JSON.parse(stored);
                 if (currentUser && currentUser.userId) {
-                    authStatus.textContent = `上次登录用户：${currentUser.username || currentUser.account} (ID=${currentUser.userId})，请重新登录进入系统。`;
+                    authStatus.textContent = `当前用户：${currentUser.username || currentUser.account} (ID=${currentUser.userId})`;
+                    userIdInput.value = currentUser.userId;
+                    userIdInput.disabled = true;
+                    // 自动进入业务页面，避免从结果页返回时又看到登录区
+                    authSection.style.display = 'none';
+                    businessSection.style.display = 'block';
                 }
             }
         } catch (e) {
@@ -420,47 +431,35 @@
                     const result = data.data.result;
                     const suggestions = data.data.suggestions || [];
 
+                    // 记录本次审查的 resultId，供“打开文件”页面使用
                     currentResultId = result.resultId;
                     currentReviewedFileId = null;
     
                     resultDiv.className = 'result success';
                     resultDiv.style.display = 'block';
-    
-                    let suggestionsHtml = '';
-                    if (suggestions.length > 0) {
-                        suggestionsHtml = '<h4>📋 审查建议：</h4><ul style="text-align:left;margin-top:10px;">';
-                        suggestions.forEach(sug => {
-                            const sev = (sug.severity || '').toUpperCase();
-                            const color = sev === 'HIGH' ? '#f44336'
-                                        : sev === 'MEDIUM' ? '#ff9800'
-                                        : '#4caf50';
-                            suggestionsHtml += `
-                                <li style="margin-bottom:10px;padding:10px;background:#fff;border-radius:5px;border-left:4px solid ${color};">
-                                    <strong style="color:${color};">[${sug.category || '未分类'}]</strong>
-                                    <span style="color:#666;"> 行 ${sug.lineNumbers || '-'}</span><br>
-                                    <span style="color:#333;">${sug.suggestion || ''}</span>
-                                </li>
-                            `;
-                        });
-                        suggestionsHtml += '</ul>';
-                    } else {
-                        suggestionsHtml = '<p style="color:#666;">✨ 代码质量良好，暂无建议</p>';
-                    }
-    
+
+                    // 只在当前页面提示上传与审查成功，引导用户前往新页面查看详情
                     resultDiv.innerHTML = `
-                        <h3>✅ AI 审查完成！</h3>
-                        <p><strong>请求 ID：</strong>${result.requestId || '未知'}</p>
-                        <p><strong>模型：</strong>${result.model || 'deepseek-chat'}</p>
-                        <p><strong>审查时间：</strong>${result.reviewTime || '刚刚'}</p>
-                        <h4>📝 总结：</h4>
-                        <p style="background:#fff;padding:15px;border-radius:5px;text-align:left;">
-                            ${result.summary || '审查完成'}
-                        </p>
-                        ${suggestionsHtml}
+                        <h3>✅ 上传成功，AI 审查已完成</h3>
+                        <p style="margin-top:8px;">文件 ID：${result.fileId || '未知'}，请求 ID：${result.requestId || '未知'}</p>
+                        <p style="margin-top:4px;color:#555;">点击下方“打开文件”，在新页面中按行查看代码与审查建议。</p>
                     `;
 
-                    // 显示后续操作按钮（生成/确认/放弃）
-                    actionsDiv.style.display = 'block';
+                    const openBtn = document.createElement('button');
+                    openBtn.type = 'button';
+                    openBtn.textContent = '打开文件';
+                    openBtn.style.marginTop = '12px';
+                    openBtn.addEventListener('click', () => {
+                        if (!currentResultId) {
+                            alert('当前没有可查看的审查结果');
+                            return;
+                        }
+                        window.location.href = `/review.html?resultId=${encodeURIComponent(currentResultId)}`;
+                    });
+                    resultDiv.appendChild(openBtn);
+
+                    // 后续“生成/保存/放弃”操作移动到新页面，这里不再显示
+                    actionsDiv.style.display = 'none';
                     return;
                 }
     

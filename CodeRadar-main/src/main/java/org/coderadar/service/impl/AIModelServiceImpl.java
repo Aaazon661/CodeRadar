@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class AIModelServiceImpl implements AImodelService {
@@ -20,7 +21,22 @@ public class AIModelServiceImpl implements AImodelService {
     @Value("${ai.api.key}")
     private String apiKey;
 
-    private final OkHttpClient httpClient = new OkHttpClient();
+    /**
+     * AI 接口调用超时时间（毫秒），可在 application.yml 中通过 ai.api.timeoutMillis 覆盖
+     * 示例：
+     * ai:
+     *   api:
+     *     timeoutMillis: 120000
+     */
+    @Value("${ai.api.timeoutMillis:120000}")
+    private long timeoutMillis;
+
+    private final OkHttpClient httpClient = new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout( timeoutMillis, TimeUnit.MILLISECONDS)
+            .writeTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+            .callTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+            .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
