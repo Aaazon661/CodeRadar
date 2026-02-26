@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class AIModelServiceImpl implements AImodelService {
@@ -20,7 +21,15 @@ public class AIModelServiceImpl implements AImodelService {
     @Value("${ai.api.key}")
     private String apiKey;
 
-    private final OkHttpClient httpClient = new OkHttpClient();
+    @Value("${ai.api.timeoutMills:120000}")
+    private long timeoutMills;
+
+    private final OkHttpClient httpClient = new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(timeoutMills,TimeUnit.MILLISECONDS)
+            .writeTimeout(timeoutMills,TimeUnit.MILLISECONDS)
+            .callTimeout(timeoutMills,TimeUnit.MILLISECONDS)
+            .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**

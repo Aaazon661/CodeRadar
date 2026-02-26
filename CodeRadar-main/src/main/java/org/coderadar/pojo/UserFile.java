@@ -15,8 +15,6 @@ public class UserFile {
     private String storedFileName;
     /** 文件存储路径/对象存储key */
     private String storagePath;
-    /** 文件内容 */
-    private String fileContent;
     /** 文件类型：java/py/js/txt... */
     private String fileType;
     /** 文件大小（字节） */

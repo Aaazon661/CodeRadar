@@ -41,12 +41,12 @@ public class FileControllerImpl implements FileController {
         }
 
         try {
-            Files.createDirectories(Paths.get(UPLOAD_DIR));
+
 
             String original = file.getOriginalFilename();
             String stored = UUID.randomUUID() + "_" + (StringUtils.hasText(original) ? original : "file.txt");
-            Path target = Paths.get(UPLOAD_DIR, stored);
-            Files.write(target, file.getBytes());
+            fileService.save(UPLOAD_DIR,stored,file);
+
 
             String fileType = "";
             if (StringUtils.hasText(original) && original.contains(".")) {
@@ -60,7 +60,7 @@ public class FileControllerImpl implements FileController {
                     .userId(userId)
                     .originalFileName(original)
                     .storedFileName(stored)
-                    .storagePath(target.toString())
+                    .storagePath(Paths.get(UPLOAD_DIR, stored).toString())
                     //.fileContent(content)  // 保存文件内容
                     .fileType(fileType)
                     .fileSize(file.getSize())
@@ -126,9 +126,10 @@ public class FileControllerImpl implements FileController {
         }
 
         try {
+            String content = fileService.readFileContent(file.getStoragePath());
             byte[] contentBytes;
-            if (file.getFileContent() != null) {
-                contentBytes = file.getFileContent().getBytes(StandardCharsets.UTF_8);
+            if (content != null) {
+                contentBytes = content.getBytes(StandardCharsets.UTF_8);
             } else if (file.getStoragePath() != null) {
                 Path path = Paths.get(file.getStoragePath());
                 contentBytes = Files.readAllBytes(path);
