@@ -21,14 +21,21 @@ public class AIModelServiceImpl implements AImodelService {
     @Value("${ai.api.key}")
     private String apiKey;
 
-    @Value("${ai.api.timeoutMills:120000}")
-    private long timeoutMills;
+    /**
+     * AI 接口调用超时时间（毫秒），可在 application.yml 中通过 ai.api.timeoutMillis 覆盖
+     * 示例：
+     * ai:
+     *   api:
+     *     timeoutMillis: 120000
+     */
+    @Value("${ai.api.timeoutMillis:120000}")
+    private long timeoutMillis;
 
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(timeoutMills,TimeUnit.MILLISECONDS)
-            .writeTimeout(timeoutMills,TimeUnit.MILLISECONDS)
-            .callTimeout(timeoutMills,TimeUnit.MILLISECONDS)
+            .readTimeout( timeoutMillis, TimeUnit.MILLISECONDS)
+            .writeTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+            .callTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
             .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
 

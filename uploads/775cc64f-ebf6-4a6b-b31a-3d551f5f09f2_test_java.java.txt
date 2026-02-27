@@ -1,0 +1,48 @@
+public class BuggySample {
+
+    public static void main(String[] args) throws Exception {
+        System.out.println("=== BuggySample Demo ===");
+
+        // 1. 典型的 NullPointerException 问题（希望 AI 提示加空指针判断）
+        String username = null;
+        System.out.println("用户名长度：" + username.length()); // 这里会 NPE
+
+        // 2. 可能除以 0 的逻辑错误（希望 AI 提示先判断 / 使用 Optional 等）
+        int total = 100;
+        int count = 0; // 实际上有可能为 0
+        int avg = total / count;
+        System.out.println("平均值：" + avg);
+
+        // 3. 资源未关闭的 I/O（希望 AI 给出 try-with-resources 写法）
+        java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.FileReader("not-exists.txt")); // 这里文件名写死了
+        String line;
+        while ((line = reader.readLine()) != null) {
+            System.out.println(line.toUpperCase());
+        }
+        // BUG: 没有调用 reader.close()，而且也没有 try-catch
+
+        // 4. 线程休眠异常处理不当（希望 AI 提出更规范的中断处理）
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            // 什么也不做，直接吞掉异常
+        }
+
+        // 5. SQL 拼接存在注入风险（希望 AI 提示使用 PreparedStatement）
+        String userInputName = "admin' OR '1'='1";
+        String sql = "SELECT * FROM users WHERE name = '" + userInputName + "'";
+        System.out.println("即将执行的 SQL：" + sql);
+        // 这里只是打印，没有真正访问数据库
+
+        // 6. 逻辑 bug：想找最大值，却写成了最小值（希望 AI 给出正确代码示例）
+        int[] scores = {90, 60, 75, 100, 88};
+        int max = Integer.MAX_VALUE; // 写错了，本来应该是 MIN_VALUE
+        for (int s : scores) {
+            if (s > max) { // 永远不会成立
+                max = s;
+            }
+        }
+        System.out.println("数组中的最大值：" + max);
+    }
+}

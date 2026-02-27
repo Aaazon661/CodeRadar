@@ -39,10 +39,13 @@ public class ReviewControllerImpl implements ReviewController {
     }
 
     @PostMapping("/{resultId}/generate-file")
-    public ResultResponse<Long> generateReviewedFile(@PathVariable Long resultId) {
+    public ResultResponse<Long> generateReviewedFile(
+            @PathVariable Long resultId,
+            @org.springframework.web.bind.annotation.RequestBody(required = false) java.util.List<Long> selectedSuggestionIds
+    ) {
         if (resultId == null || resultId <= 0) return ResultResponse.fail(Code.PARAM_ERROR);
         try {
-            Long newFileId = reviewService.generateReviewedFile(resultId);
+            Long newFileId = reviewService.generateReviewedFile(resultId, selectedSuggestionIds);
             return newFileId != null ? ResultResponse.success(newFileId) : ResultResponse.fail(Code.NOT_FOUND);
         } catch (Exception e) {
             return ResultResponse.fail(Code.SERVER_ERROR.getCode(), "生成失败：" + e.getMessage());

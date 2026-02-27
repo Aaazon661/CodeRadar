@@ -113,6 +113,13 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public Long generateReviewedFile(Long resultId) {
+        // 兼容旧接口：不带选中列表时，默认使用全部建议
+        return generateReviewedFile(resultId, null);
+    }
+
+    @Override
+    @Transactional
+    public Long generateReviewedFile(Long resultId, List<Long> selectedSuggestionIds) {
         try {
             // 1. 获取审查结果
             Result result = resultDAO.findById(resultId);
@@ -126,10 +133,18 @@ public class ReviewServiceImpl implements ReviewService {
                 throw new IllegalArgumentException("原始文件不存在，fileId: " + result.getFileId());
             }
 
-            // 3. 获取所有建议
+            // 3. 获取建议列表（如果指定了选中列表，只保留用户选中的那些）
             List<Suggestion> suggestions = suggestionDAO.findByResultId(resultId);
             if (suggestions == null || suggestions.isEmpty()) {
                 log.warn("没有找到建议，直接返回原文件副本");
+            } else if (selectedSuggestionIds != null && !selectedSuggestionIds.isEmpty()) {
+                java.util.Set<Long> idSet = new java.util.HashSet<>(selectedSuggestionIds);
+                suggestions = suggestions.stream()
+                        .filter(s -> s.getSuggestionId() != null && idSet.contains(s.getSuggestionId()))
+                        .collect(java.util.stream.Collectors.toList());
+                if (suggestions.isEmpty()) {
+                    log.warn("根据选中列表过滤后没有可用建议，将只返回原文件内容");
+                }
             }
 
             // 4. 生成带注释的新文件内容
@@ -361,15 +376,55 @@ public class ReviewServiceImpl implements ReviewService {
 
     /**
      * 将建议格式化为注释
+     * 说明：在注释中只展示简短错误类型（如「逻辑错误」「安全风险」），
+     * 行号前加上「行」说明，不再在方括号里拼接 MEDIUM/HIGH 等级，避免冗长。
      */
     private String formatSuggestionAsComment(Suggestion sug, String fileType) {
         String commentPrefix = getCommentPrefix(fileType);
-        return String.format("%s [%s-%s] %s: %s",
+        String categoryLabel = toPrettyCategory(sug.getCategory());
+        String lineInfo = (sug.getLineNumbers() != null && !sug.getLineNumbers().isEmpty())
+                ? "行" + sug.getLineNumbers()   // 行和数字之间不留空格
+                : "相关行";
+
+        // 注释格式示例：// ("安全风险"):    行35-41: 具体建议
+        return String.format("%s (\"%s\"):    %s: %s",
                 commentPrefix,
-                sug.getCategory(),
-                sug.getSeverity(),
-                sug.getLineNumbers(),
+                categoryLabel,
+                lineInfo,
                 sug.getSuggestion());
+    }
+
+    /**
+     * 将原始的分类字段转换为更友好的中文标签
+     */
+    private String toPrettyCategory(String rawCategory) {
+        if (rawCategory == null) {
+            return "代码问题";
+        }
+        String c = rawCategory.trim();
+        if (c.isEmpty()) {
+            return "代码问题";
+        }
+        String lower = c.toLowerCase();
+
+        // 常见英文分类映射
+        if (lower.contains("security")) return "安全风险";
+        if (lower.contains("performance")) return "性能问题";
+        if (lower.contains("readability")) return "可读性问题";
+        if (lower.contains("style")) return "代码风格";
+        if (lower.contains("logic")) return "逻辑错误";
+        if (lower.contains("bug")) return "潜在 Bug";
+
+        // 常见中文关键词映射
+        if (c.contains("安全")) return "安全风险";
+        if (c.contains("性能")) return "性能问题";
+        if (c.contains("可读")) return "可读性问题";
+        if (c.contains("风格")) return "代码风格";
+        if (c.contains("逻辑")) return "逻辑错误";
+        if (c.contains("并发") || c.contains("线程")) return "并发问题";
+
+        // 默认回退：直接使用原分类或通用标签
+        return c;
     }
 
     /**
