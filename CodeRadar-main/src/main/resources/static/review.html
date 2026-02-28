@@ -171,6 +171,9 @@
             white-space: pre;
             overflow-wrap: normal;
         }
+        .code-line {
+            -webkit-tap-highlight-color: rgba(79,70,229,0.12);
+        }
         .code-line.has-suggestion .line-number {
             color: #f97373;
             font-weight: 600;
@@ -200,6 +203,9 @@
             background: #f9fafb;
             cursor: pointer;
             transition: background 0.15s, transform 0.1s;
+        }
+        .suggestion-item:active {
+            background: #e0e7ff;
         }
         .suggestion-item:hover {
             background: #eef2ff;
@@ -263,8 +269,94 @@
             text-align: right;
         }
         @media (max-width: 900px) {
+            body {
+                align-items: flex-start;
+                padding: 12px;
+            }
+            .container {
+                padding: 18px;
+                border-radius: 16px;
+            }
             .content {
                 grid-template-columns: 1fr;
+                min-height: auto;
+            }
+        }
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .title {
+                font-size: 1.35rem;
+            }
+            .meta {
+                font-size: 0.85rem;
+            }
+            .back-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 12px;
+            }
+            .toolbar {
+                gap: 8px;
+            }
+            .toolbar button {
+                width: 100%;
+                justify-content: center;
+                padding: 12px 14px;
+                font-size: 0.95rem;
+            }
+            .panel-header {
+                padding: 8px 10px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .panel-body {
+                font-size: 0.8rem;
+                -webkit-overflow-scrolling: touch;
+                max-height: 46vh;
+            }
+            .suggestions-list {
+                padding: 8px 8px 10px;
+                font-size: 0.88rem;
+                max-height: 46vh;
+                -webkit-overflow-scrolling: touch;
+            }
+            .code-line {
+                grid-template-columns: 34px 1fr;
+                gap: 6px;
+            }
+            .panel-body-inner {
+                padding: 8px 10px 12px 10px;
+            }
+            .suggestion-item {
+                padding: 10px 10px;
+            }
+            .suggestion-item input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+            }
+            .category-pill {
+                height: 22px;
+                font-size: 0.78rem;
+            }
+            .severity-tag {
+                font-size: 0.72rem;
+                padding: 0 8px;
+            }
+            .status-bar {
+                text-align: left;
+                font-size: 0.82rem;
+            }
+        }
+        @media (hover: none) {
+            .toolbar button:hover:not(:disabled),
+            .back-btn:hover,
+            .suggestion-item:hover {
+                transform: none;
+                box-shadow: none;
             }
         }
     </style>

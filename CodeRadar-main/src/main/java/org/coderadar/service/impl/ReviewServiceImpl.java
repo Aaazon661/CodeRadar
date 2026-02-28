@@ -161,7 +161,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .originalFileName(generateReviewedFileName(originalFile.getOriginalFileName()))
                     .storedFileName(generateReviewedFileName(originalFile.getStoredFileName()))
                     .storagePath(originalFile.getStoragePath() + "_reviewed")
-                    //.fileContent(originalFile.getFileContent())
+                    .fileContent(reviewedContent)
                     .fileType(originalFile.getFileType())
                     .fileHash(originalFile.getFileHash())
                     .encoding(originalFile.getEncoding())

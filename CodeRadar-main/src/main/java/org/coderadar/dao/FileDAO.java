@@ -7,8 +7,11 @@ import java.util.List;
 
 @Mapper
 public interface FileDAO {
-    @Insert("INSERT INTO user_file(user_id, original_file_name, stored_file_name, storage_path) " +
-            "VALUES(#{userId}, #{originalFileName}, #{storedFileName}, #{storagePath})")
+    @Insert("INSERT INTO user_file(" +
+            "user_id, original_file_name, stored_file_name, storage_path, file_content, file_type, file_size, file_hash, encoding, newline, deleted" +
+            ") VALUES(" +
+            "#{userId}, #{originalFileName}, #{storedFileName}, #{storagePath}, #{fileContent}, #{fileType}, #{fileSize}, #{fileHash}, #{encoding}, #{newline}, #{deleted}" +
+            ")")
     @Options(useGeneratedKeys = true, keyProperty = "fileId")
     void insertFile(UserFile file);
 
@@ -20,7 +23,8 @@ public interface FileDAO {
     UserFile findByFileId(Long fileId);
 
     // 查询用户的所有文件（未删除）
-    @Select("SELECT * FROM user_file WHERE user_id = #{userId} AND deleted = FALSE")
+    @Select("SELECT file_id, user_id, original_file_name, stored_file_name, storage_path, file_type, file_size, file_hash, encoding, newline, deleted, created_at, updated_at " +
+            "FROM user_file WHERE user_id = #{userId} AND deleted = FALSE")
     List<UserFile> findByUserId(Long userId);
 
     // 软删除文件
@@ -32,7 +36,7 @@ public interface FileDAO {
             "original_file_name = #{originalFileName}, " +
             "stored_file_name = #{storedFileName}, " +
             "storage_path = #{storagePath}, " +
-            //"file_content = #{fileContent}, " +
+            "file_content = #{fileContent}, " +
             "file_type = #{fileType}, " +
             "file_size = #{fileSize}, " +
             "file_hash = #{fileHash}, " +

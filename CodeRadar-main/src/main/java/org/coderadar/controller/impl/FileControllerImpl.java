@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.coderadar.common.Code;
 import org.coderadar.common.ResultResponse;
 import org.coderadar.controller.FileController;
-import org.coderadar.pojo.Result;
 import org.coderadar.pojo.UserFile;
 import org.coderadar.service.FileService;
 import org.coderadar.service.ReviewService;
@@ -34,6 +33,7 @@ public class FileControllerImpl implements FileController {
     private static final String UPLOAD_DIR = "uploads";
 
     @PostMapping("/upload")
+    @SuppressWarnings({"DataFlowIssue", "ConstantConditions"})
     public ResultResponse<Object> upload(@RequestParam("userId") Long userId,
                                          @RequestParam("file") MultipartFile file) {
         if (userId == null || userId <= 0 || file == null || file.isEmpty()) {
@@ -48,22 +48,28 @@ public class FileControllerImpl implements FileController {
             fileService.save(UPLOAD_DIR,stored,file);
 
 
+            String safeOriginal = original;
+            if (!StringUtils.hasText(safeOriginal)) {
+                safeOriginal = "file.txt";
+            }
             String fileType = "";
-            if (StringUtils.hasText(original) && original.contains(".")) {
-                fileType = original.substring(original.lastIndexOf('.') + 1);
+            if (safeOriginal != null && safeOriginal.contains(".")) {
+                fileType = safeOriginal.substring(safeOriginal.lastIndexOf('.') + 1);
             }
 
             // 读取文件内容
-            //String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
 
             UserFile uf = UserFile.builder()
                     .userId(userId)
-                    .originalFileName(original)
+                    .originalFileName(safeOriginal != null ? safeOriginal : "file.txt")
                     .storedFileName(stored)
                     .storagePath(Paths.get(UPLOAD_DIR, stored).toString())
-                    //.fileContent(content)  // 保存文件内容
+                    .fileContent(content)  // 保存文件内容（用于前端展示/下载）
                     .fileType(fileType)
                     .fileSize(file.getSize())
+                    .encoding("UTF-8")
+                    .newline(content.contains("\r\n") ? "CRLF" : "LF")
                     .deleted(false)
                     .build();
 
@@ -95,6 +101,19 @@ public class FileControllerImpl implements FileController {
 
         UserFile file = fileService.getById(fileId);
         if (file == null) return ResultResponse.fail(Code.FILE_NOT_FOUND);
+
+        // 兼容旧数据：如果数据库没存 fileContent，则从 storagePath 回填一份用于展示
+        try {
+            if ((file.getFileContent() == null || file.getFileContent().isBlank()) && StringUtils.hasText(file.getStoragePath())) {
+                String diskContent = fileService.readFileContent(file.getStoragePath());
+                if (diskContent != null) {
+                    file.setFileContent(diskContent);
+                }
+            }
+        } catch (Exception ignored) {
+            // 展示接口不因为读取失败而直接报错（前端会显示为空）
+        }
+
         return ResultResponse.success(file);
     }
 
@@ -126,11 +145,13 @@ public class FileControllerImpl implements FileController {
         }
 
         try {
-            String content = fileService.readFileContent(file.getStoragePath());
             byte[] contentBytes;
-            if (content != null) {
-                contentBytes = content.getBytes(StandardCharsets.UTF_8);
-            } else if (file.getStoragePath() != null) {
+
+            // 优先使用数据库中的 fileContent（例如审查文件可能只存 DB）
+            if (StringUtils.hasText(file.getFileContent())) {
+                contentBytes = file.getFileContent().getBytes(StandardCharsets.UTF_8);
+            } else if (StringUtils.hasText(file.getStoragePath())) {
+                // 否则从磁盘读取
                 Path path = Paths.get(file.getStoragePath());
                 contentBytes = Files.readAllBytes(path);
             } else {
@@ -150,7 +171,7 @@ public class FileControllerImpl implements FileController {
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .contentType(MediaType.parseMediaType(MediaType.APPLICATION_OCTET_STREAM_VALUE))
                     .contentLength(contentBytes.length)
                     .body(contentBytes);
         } catch (Exception e) {
