@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,6 +96,11 @@ public class FileControllerImpl implements FileController {
 
         UserFile file = fileService.getById(fileId);
         if (file == null) return ResultResponse.fail(Code.FILE_NOT_FOUND);
+        try {
+            file.setFileContent(fileService.readFileContent(file.getStoragePath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return ResultResponse.success(file);
     }
 
