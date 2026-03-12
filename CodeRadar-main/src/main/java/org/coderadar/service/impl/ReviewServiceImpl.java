@@ -13,6 +13,7 @@ import org.coderadar.pojo.UserFile;
 import org.coderadar.service.AImodelService;
 import org.coderadar.service.FileService;
 import org.coderadar.service.ReviewService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,9 @@ public class ReviewServiceImpl implements ReviewService {
     private final FileService fileService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String UPLOAD_DIR = "reviews";
+
+    @Value("${ai.api.model}")
+    private String apiModel;
 
     @Override
     @Transactional
@@ -65,7 +69,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .requestId(parsedResult.getRequestId())
                     .userId(userId)
                     .fileId(fileId)
-                    .model(model != null ? model : "deepseek-chat")
+                    .model(apiModel)
                     .summary(parsedResult.getSummary())
                     .reviewTime(now)
                     .rawJson(aiResponse)

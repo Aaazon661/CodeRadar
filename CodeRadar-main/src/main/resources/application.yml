@@ -27,5 +27,22 @@ server:
 # AI 配置
 ai:
   api:
-    url: https://api.deepseek.com/v1/chat/completions  # 或 OpenAI/智谱的 URL
-    key: sk-cdfd76cdd3e24b6d90150885656574b6  # 替换为你的真实 API Key
+#    #deepseek
+#    url: https://api.deepseek.com/v1/chat/completions  # 或 OpenAI/智谱的 URL
+#    key: sk-cdfd76cdd3e24b6d90150885656574b6  # 替换为你的真实 API Key
+#    model: deepseek-chat
+
+#    #火山引擎（豆包）
+#    url: https://ark.cn-beijing.volces.com/api/v3/chat/completions
+#    key: f40bb4c3-9694-4479-b1c1-993c633bd052
+#    model: doubao-seed-2-0-mini-260215
+
+#    #通义千问
+#    url: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+#    key: sk-11f0d51b10c14a2bbe062f8435bbf713
+#    model: qwen3.5-flash
+
+#    #文心一言
+#    url: https://qianfan.baidubce.com/v2/chat/completions
+#    key: bce-v3/ALTAK-3GxfC08nftCFPt4mc6wAi/ae177bddc3b7991ae973914fc3aa53bf1de573ae
+#    model: ernie-4.5-turbo-128k-preview

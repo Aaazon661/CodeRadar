@@ -21,6 +21,9 @@ public class AIModelServiceImpl implements AImodelService {
     @Value("${ai.api.key}")
     private String apiKey;
 
+    @Value("${ai.api.model}")
+    private String apiModel;
+
     /**
      * AI 接口调用超时时间（毫秒），可在 application.yml 中通过 ai.api.timeoutMillis 覆盖
      * 示例：
@@ -80,7 +83,7 @@ public class AIModelServiceImpl implements AImodelService {
 
     private String buildRequestBody(String prompt) throws Exception {
         String body = "{\n" +
-                "  \"model\": \"deepseek-chat\",\n" +
+                "  \"model\": \"" + apiModel + "\",\n" +
                 "  \"messages\": [\n" +
                 "    {\"role\": \"system\", \"content\": \"你是代码审计专家，必须返回纯 JSON 格式结果\"},\n" +
                 "    {\"role\": \"user\", \"content\": " + objectMapper.writeValueAsString(prompt) + "}\n" +
