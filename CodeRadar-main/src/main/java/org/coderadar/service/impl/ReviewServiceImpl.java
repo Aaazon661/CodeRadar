@@ -51,6 +51,7 @@ public class ReviewServiceImpl implements ReviewService {
             }
 
             log.info("开始审查文件: fileId={}, fileName={}", fileId, file.getOriginalFileName());
+            long start = System.currentTimeMillis();
 
             // 2. 构建完整的代码内容（包含背景说明）
             String codeContent = fileService.readFileContent(file.getStoragePath());
@@ -79,6 +80,8 @@ public class ReviewServiceImpl implements ReviewService {
 
             resultDAO.insert(result);
             log.info("保存审查结果: resultId={}, requestId={}", result.getResultId(), result.getRequestId());
+            long end = System.currentTimeMillis();
+            log.info("审查花费时间: cost:{}ms", end - start);
 
             // 6. 批量保存建议（事务性）
             if (parsedResult.getSuggestions() != null && !parsedResult.getSuggestions().isEmpty()) {

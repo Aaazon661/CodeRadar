@@ -42,7 +42,7 @@ ai:
 #    key: sk-11f0d51b10c14a2bbe062f8435bbf713
 #    model: qwen3.5-flash
 
-#    #文心一言
-#    url: https://qianfan.baidubce.com/v2/chat/completions
-#    key: bce-v3/ALTAK-3GxfC08nftCFPt4mc6wAi/ae177bddc3b7991ae973914fc3aa53bf1de573ae
-#    model: ernie-4.5-turbo-128k-preview
+    #文心一言
+    url: https://qianfan.baidubce.com/v2/chat/completions
+    key: bce-v3/ALTAK-3GxfC08nftCFPt4mc6wAi/ae177bddc3b7991ae973914fc3aa53bf1de573ae
+    model: ernie-4.5-turbo-128k
