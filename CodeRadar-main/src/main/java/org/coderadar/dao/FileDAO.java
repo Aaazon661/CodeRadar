@@ -7,8 +7,9 @@ import java.util.List;
 
 @Mapper
 public interface FileDAO {
-    @Insert("INSERT INTO user_file(user_id, original_file_name, stored_file_name, storage_path) " +
-            "VALUES(#{userId}, #{originalFileName}, #{storedFileName}, #{storagePath})")
+    @Insert("INSERT INTO user_file(user_id, original_file_name, stored_file_name, storage_path," +
+            "file_type,file_size,encoding) " +
+            "VALUES(#{userId}, #{originalFileName}, #{storedFileName}, #{storagePath},#{fileType},#{fileSize},'UTF-8')")
     @Options(useGeneratedKeys = true, keyProperty = "fileId")
     void insertFile(UserFile file);
 
