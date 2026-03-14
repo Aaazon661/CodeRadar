@@ -13,9 +13,11 @@ import org.coderadar.pojo.UserFile;
 import org.coderadar.service.AImodelService;
 import org.coderadar.service.FileService;
 import org.coderadar.service.ReviewService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +35,10 @@ public class ReviewServiceImpl implements ReviewService {
     private final SuggestionDAO suggestionDAO;
     private final FileService fileService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String UPLOAD_DIR = "reviews";
+
+    @Value("${ai.api.model}")
+    private String apiModel;
 
     @Override
     @Transactional
@@ -45,9 +51,11 @@ public class ReviewServiceImpl implements ReviewService {
             }
 
             log.info("开始审查文件: fileId={}, fileName={}", fileId, file.getOriginalFileName());
+            long start = System.currentTimeMillis();
 
             // 2. 构建完整的代码内容（包含背景说明）
-            String codeWithBackground = buildCodeWithBackground(file.getFileContent(), background);
+            String codeContent = fileService.readFileContent(file.getStoragePath());
+            String codeWithBackground = buildCodeWithBackground(codeContent, background);
 
             // 3. 调用AI进行分析
             String aiResponse = aiModelService.analyzeCode(codeWithBackground);
@@ -62,7 +70,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .requestId(parsedResult.getRequestId())
                     .userId(userId)
                     .fileId(fileId)
-                    .model(model != null ? model : "deepseek-chat")
+                    .model(apiModel)
                     .summary(parsedResult.getSummary())
                     .reviewTime(now)
                     .rawJson(aiResponse)
@@ -72,6 +80,8 @@ public class ReviewServiceImpl implements ReviewService {
 
             resultDAO.insert(result);
             log.info("保存审查结果: resultId={}, requestId={}", result.getResultId(), result.getRequestId());
+            long end = System.currentTimeMillis();
+            log.info("审查花费时间: cost:{}ms", end - start);
 
             // 6. 批量保存建议（事务性）
             if (parsedResult.getSuggestions() != null && !parsedResult.getSuggestions().isEmpty()) {
@@ -146,7 +156,7 @@ public class ReviewServiceImpl implements ReviewService {
 
             // 4. 生成带注释的新文件内容
             String reviewedContent = insertSuggestionsIntoFile(
-                    originalFile.getFileContent(),
+                    fileService.readFileContent(originalFile.getStoragePath()),
                     suggestions,
                     originalFile.getFileType()
             );
@@ -158,7 +168,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .originalFileName(generateReviewedFileName(originalFile.getOriginalFileName()))
                     .storedFileName(generateReviewedFileName(originalFile.getStoredFileName()))
                     .storagePath(originalFile.getStoragePath() + "_reviewed")
-                    .fileContent(originalFile.getFileContent())
+                    //.fileContent(originalFile.getFileContent())
                     .fileType(originalFile.getFileType())
                     .fileHash(originalFile.getFileHash())
                     .encoding(originalFile.getEncoding())
@@ -168,11 +178,15 @@ public class ReviewServiceImpl implements ReviewService {
                     .updatedAt(now)
                     .build();
 
+            //生成文件，修改存储目录
+            draftFile.setStoragePath(Paths.get(UPLOAD_DIR, draftFile.getStoragePath()).toString());
+            fileService.save(draftFile.getStoragePath(),"");
             // 使用 FileService 负责上传，自动补充 fileSize、时间等属性
             UserFile createdFile = fileService.upload(draftFile);
 
             // 6. 再通过 FileService 的 update 功能，把审查建议插入后的内容写回该新文件
-            createdFile.setFileContent(reviewedContent);
+            System.err.println("即将写入新文本：" + reviewedContent);
+            fileService.save(createdFile.getStoragePath(),reviewedContent);
             fileService.update(createdFile);
 
             log.info("生成审查后文件: newFileId={}, originalFileId={}", createdFile.getFileId(), originalFile.getFileId());

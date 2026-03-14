@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,12 +42,12 @@ public class FileControllerImpl implements FileController {
         }
 
         try {
-            Files.createDirectories(Paths.get(UPLOAD_DIR));
+
 
             String original = file.getOriginalFilename();
             String stored = UUID.randomUUID() + "_" + (StringUtils.hasText(original) ? original : "file.txt");
-            Path target = Paths.get(UPLOAD_DIR, stored);
-            Files.write(target, file.getBytes());
+            fileService.save(UPLOAD_DIR,stored,file);
+
 
             String fileType = "";
             if (StringUtils.hasText(original) && original.contains(".")) {
@@ -54,14 +55,14 @@ public class FileControllerImpl implements FileController {
             }
 
             // 读取文件内容
-            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+            //String content = new String(file.getBytes(), StandardCharsets.UTF_8);
 
             UserFile uf = UserFile.builder()
                     .userId(userId)
                     .originalFileName(original)
                     .storedFileName(stored)
-                    .storagePath(target.toString())
-                    .fileContent(content)  // 保存文件内容
+                    .storagePath(Paths.get(UPLOAD_DIR, stored).toString())
+                    //.fileContent(content)  // 保存文件内容
                     .fileType(fileType)
                     .fileSize(file.getSize())
                     .deleted(false)
@@ -95,6 +96,11 @@ public class FileControllerImpl implements FileController {
 
         UserFile file = fileService.getById(fileId);
         if (file == null) return ResultResponse.fail(Code.FILE_NOT_FOUND);
+        try {
+            file.setFileContent(fileService.readFileContent(file.getStoragePath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return ResultResponse.success(file);
     }
 
@@ -126,9 +132,10 @@ public class FileControllerImpl implements FileController {
         }
 
         try {
+            String content = fileService.readFileContent(file.getStoragePath());
             byte[] contentBytes;
-            if (file.getFileContent() != null) {
-                contentBytes = file.getFileContent().getBytes(StandardCharsets.UTF_8);
+            if (content != null) {
+                contentBytes = content.getBytes(StandardCharsets.UTF_8);
             } else if (file.getStoragePath() != null) {
                 Path path = Paths.get(file.getStoragePath());
                 contentBytes = Files.readAllBytes(path);

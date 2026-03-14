@@ -15,10 +15,10 @@ public class UserFile {
     private String storedFileName;
     /** 文件存储路径/对象存储key */
     private String storagePath;
-    /** 文件内容 */
-    private String fileContent;
     /** 文件类型：java/py/js/txt... */
     private String fileType;
+    /** 文件内容（仅用于传给前端） */
+    private String fileContent;
     /** 文件大小（字节） */
     private Long fileSize;
     /** 文件hash（用于去重/校验，可选但推荐） */
