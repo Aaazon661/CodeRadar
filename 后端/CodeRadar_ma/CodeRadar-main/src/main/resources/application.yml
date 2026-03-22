@@ -1,0 +1,33 @@
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/CodeRadar}  # 改为大写
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:123456}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  web:
+    resources:
+      static-locations: classpath:/static/
+  mvc:
+    static-path-pattern: /**
+
+mybatis:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 服务器配置
+server:
+  port: 8080
+
+# AI 配置
+ai:
+  api:
+    url: https://api.deepseek.com/v1/chat/completions
+    key: ${AI_API_KEY:sk-cdfd76cdd3e24b6d90150885656574b6}
+
+

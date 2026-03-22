@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeRadar - 代码审查系统</title>
+    <style>
+        :root {
+            --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC",
+                "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: var(--font-sans);
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .auth {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .auth h2 {
+            color: #1565c0;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .auth-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .auth-row input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+        }
+        .auth-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .auth-actions button {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.9em;
+        }
+        .auth-status {
+            margin-top: 6px;
+            font-size: 0.85em;
+            color: #555;
+        }
+        .status {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+        .status h2 {
+            color: #2e7d32;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .upload-section {
+            background: #f5f5f5;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .upload-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        input[type="number"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        .result.success {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            display: block;
+        }
+        .result.error {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            display: block;
+        }
+        .result pre {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 CodeRadar</h1>
+        <p class="subtitle">AI 驱动的代码审查系统</p>
+
+        <div class="auth" id="authSection">
+            <h2>👤 用户登录 / 注册</h2>
+            <div class="auth-row">
+                <input type="text" id="authAccount" placeholder="账号 (account)">
+                <input type="password" id="authPassword" placeholder="密码 (password)">
+            </div>
+            <div class="auth-row">
+                <input type="text" id="authUsername" placeholder="用户名 (注册时必填)">
+            </div>
+            <div class="auth-actions">
+                <button type="button" id="registerBtn" style="background:#8bc34a;">注册</button>
+                <button type="button" id="loginBtn" style="background:#2196f3;">登录</button>
+            </div>
+            <div id="authStatus" class="auth-status">当前未登录，将使用下方输入的用户 ID。</div>
+        </div>
+
+        <div id="businessSection" style="display:none;">
+            <div class="status">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                    <div>
+                        <h2>✅ 系统状态：运行中</h2>
+                        <p>服务器地址：<strong>http://localhost:8080</strong></p>
+                        <p>Spring Boot 版本：3.5.10</p>
+                    </div>
+                    <div>
+                        <button type="button" id="logoutBtn" style="width:auto;padding:8px 16px;background:#9e9e9e;font-size:0.9em;">
+                            退出登录
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <h3>📤 上传代码文件进行审查</h3>
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label for="userId">用户 ID：</label>
+                        <input type="number" id="userId" name="userId" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="file">选择代码文件：</label>
+                        <input type="file" id="file" name="file" accept=".java,.py,.js,.txt,.cpp,.c,.go" required>
+                    </div>
+                    <button type="submit" id="submitBtn">开始 AI 审查</button>
+                </form>
+                <div id="result" class="result"></div>
+                <div id="reviewActions" style="margin-top: 15px; display: none;">
+                    <button id="generateBtn" type="button" style="margin-bottom:10px;">生成带注释的审查文件</button>
+                    <button id="confirmBtn" type="button" style="margin-bottom:10px; background:#4caf50;">确认保存审查文件</button>
+                    <button id="discardBtn" type="button" style="background:#f44336;">放弃审查文件</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const authSection = document.getElementById('authSection');
+        const businessSection = document.getElementById('businessSection');
+        const form = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultDiv = document.getElementById('result');
+        const actionsDiv = document.getElementById('reviewActions');
+        const generateBtn = document.getElementById('generateBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const discardBtn = document.getElementById('discardBtn');
+
+        const authAccountInput = document.getElementById('authAccount');
+        const authPasswordInput = document.getElementById('authPassword');
+        const authUsernameInput = document.getElementById('authUsername');
+        const registerBtn = document.getElementById('registerBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn'); // 退出按钮现在在业务区状态栏
+        const authStatus = document.getElementById('authStatus');
+        const userIdInput = document.getElementById('userId');
+
+        // 显示审查文件信息的容器
+        let reviewedFileInfoEl = null;
+
+        // 记录当前一次审查的 resultId 和生成的审查文件ID
+        let currentResultId = null;
+        let currentReviewedFileId = null;
+        let currentUser = null;
+
+        // 尝试从 localStorage 恢复登录状态
+        try {
+            const stored = localStorage.getItem('coderadar_current_user');
+            if (stored) {
+                currentUser = JSON.parse(stored);
+                if (currentUser && currentUser.userId) {
+                    authStatus.textContent = `当前用户：${currentUser.username || currentUser.account} (ID=${currentUser.userId})`;
+                    userIdInput.value = currentUser.userId;
+                    userIdInput.disabled = true;
+                    // 自动进入业务页面，避免从结果页返回时又看到登录区
+                    authSection.style.display = 'none';
+                    businessSection.style.display = 'block';
+                }
+            }
+        } catch (e) {
+            console.warn('恢复登录状态失败', e);
+        }
+    
+        // 注册
+        registerBtn.addEventListener('click', async () => {
+            const account = authAccountInput.value.trim();
+            const password = authPasswordInput.value.trim();
+            const username = authUsernameInput.value.trim();
+            if (!account || !password || !username) {
+                alert('注册时账号、密码、用户名都不能为空');
+                return;
+            }
+            try {
+                const resp = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account,
+                        username,
+                        // 后端字段名叫 passwordHash，这里直接传明文（示例项目，未做加密）
+                        passwordHash: password
+                    })
+                });
+                const data = await resp.json();
+                if (resp.ok && data.code === 200 && data.data) {
+                    currentUser = data.data;
+                    userIdInput.value = currentUser.userId;
+                    userIdInput.disabled = true;
+                    authStatus.textContent = `当前用户：${currentUser.username || currentUser.account} (ID=${currentUser.userId})`;
+                    localStorage.setItem('coderadar_current_user', JSON.stringify(currentUser));
+                    alert('注册成功并已自动登录');
+                    // 跳转到业务页面
+                    authSection.style.display = 'none';
+                    businessSection.style.display = 'block';
+                } else {
+                    alert('注册失败：' + (data.message || resp.status));
+                }
+            } catch (e) {
+                alert('注册请求失败：' + e.message);
+            }
+        });
+
+        // 登录
+        loginBtn.addEventListener('click', async () => {
+            const account = authAccountInput.value.trim();
+            const password = authPasswordInput.value.trim();
+            if (!account || !password) {
+                alert('请输入账号和密码');
+                return;
+            }
+            try {
+                const resp = await fetch('/api/users/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account,
+                        passwordHash: password
+                    })
+                });
+                const data = await resp.json();
+                if (resp.ok && data.code === 200 && data.data) {
+                    currentUser = data.data;
+                    userIdInput.value = currentUser.userId;
+                    userIdInput.disabled = true;
+                    authStatus.textContent = `当前用户：${currentUser.username || currentUser.account} (ID=${currentUser.userId})`;
+                    localStorage.setItem('coderadar_current_user', JSON.stringify(currentUser));
+                    alert('登录成功');
+                    // 跳转到业务页面
+                    authSection.style.display = 'none';
+                    businessSection.style.display = 'block';
+                } else {
+                    alert('登录失败：' + (data.message || resp.status));
+                }
+            } catch (e) {
+                alert('登录请求失败：' + e.message);
+            }
+        });
+
+        // 退出（仅在业务页面显示的按钮）
+        logoutBtn.addEventListener('click', () => {
+            currentUser = null;
+            localStorage.removeItem('coderadar_current_user');
+            authStatus.textContent = '当前未登录，将使用下方输入的用户 ID。';
+            userIdInput.disabled = false;
+            userIdInput.value = 1;
+            // 返回到登录/注册页面
+            authSection.style.display = 'block';
+            businessSection.style.display = 'none';
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+    
+            const userId = document.getElementById('userId').value;
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+    
+            if (!file) {
+                alert('请选择文件！');
+                return;
+            }
+    
+            // 重置结果区域
+            resultDiv.className = 'result';
+            resultDiv.style.display = 'none';
+            resultDiv.innerHTML = '';
+            actionsDiv.style.display = 'none';
+            reviewedFileInfoEl = null;
+            currentResultId = null;
+            currentReviewedFileId = null;
+    
+            submitBtn.disabled = true;
+            submitBtn.textContent = '正在上传并分析...';
+    
+            try {
+                const formData = new FormData();
+                formData.append('userId', userId);
+                formData.append('file', file);
+    
+                const resp = await fetch('/api/file/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+    
+                const text = await resp.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    resultDiv.className = 'result error';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <h3>❌ 返回数据不是合法 JSON</h3>
+                        <pre>${text}</pre>
+                    `;
+                    return;
+                }
+    
+                console.log('upload response:', data);
+    
+                if (!resp.ok) {
+                    resultDiv.className = 'result error';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <h3>❌ 上传失败（HTTP ${resp.status}）</h3>
+                        <pre>${text}</pre>
+                    `;
+                    return;
+                }
+    
+                // 优先展示审查结果
+                if (data.data && data.data.result) {
+                    const result = data.data.result;
+                    const suggestions = data.data.suggestions || [];
+
+                    // 记录本次审查的 resultId，供“打开文件”页面使用
+                    currentResultId = result.resultId;
+                    currentReviewedFileId = null;
+    
+                    resultDiv.className = 'result success';
+                    resultDiv.style.display = 'block';
+
+                    // 只在当前页面提示上传与审查成功，引导用户前往新页面查看详情
+                    resultDiv.innerHTML = `
+                        <h3>✅ 上传成功，AI 审查已完成</h3>
+                        <p style="margin-top:8px;">文件 ID：${result.fileId || '未知'}，请求 ID：${result.requestId || '未知'}</p>
+                        <p style="margin-top:4px;color:#555;">点击下方“打开文件”，在新页面中按行查看代码与审查建议。</p>
+                    `;
+
+                    const openBtn = document.createElement('button');
+                    openBtn.type = 'button';
+                    openBtn.textContent = '打开文件';
+                    openBtn.style.marginTop = '12px';
+                    openBtn.addEventListener('click', () => {
+                        if (!currentResultId) {
+                            alert('当前没有可查看的审查结果');
+                            return;
+                        }
+                        window.location.href = `/review.html?resultId=${encodeURIComponent(currentResultId)}`;
+                    });
+                    resultDiv.appendChild(openBtn);
+
+                    // 后续“生成/保存/放弃”操作移动到新页面，这里不再显示
+                    actionsDiv.style.display = 'none';
+                    return;
+                }
+    
+                // 有 reviewError（AI 失败，但上传成功）
+                if (data.data && data.data.reviewError) {
+                    resultDiv.className = 'result error';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <h3>⚠️ 文件上传成功，但 AI 审查失败</h3>
+                        <p>${data.data.reviewError}</p>
+                        <p style="margin-top:10px;color:#666;">
+                            可能原因：API Key、网络或配额问题。<br>
+                            详见控制台日志（F12 → Console）。
+                        </p>
+                    `;
+                    actionsDiv.style.display = 'none';
+                    return;
+                }
+    
+                // 兜底：直接把返回都展示出来
+                resultDiv.className = 'result success';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h3>✅ 上传成功（未检测到审查结果字段）</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                actionsDiv.style.display = 'none';
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h3>❌ 网络错误</h3>
+                    <p>${err.message}</p>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '开始 AI 审查';
+            }
+        });
+
+        // 生成带注释的审查文件，并在页面上展示文件信息
+        generateBtn.addEventListener('click', async () => {
+            if (!currentResultId) {
+                alert('请先完成一次 AI 审查。');
+                return;
+            }
+            generateBtn.disabled = true;
+            generateBtn.textContent = '正在生成审查文件...';
+            try {
+                const resp = await fetch(`/api/reviews/${currentResultId}/generate-file`, {
+                    method: 'POST'
+                });
+                const data = await resp.json();
+                if (resp.ok && data.code === 200 && data.data) {
+                    currentReviewedFileId = data.data;
+
+                    // 再请求一次文件详情，展示文件名和存储路径，方便用户查看
+                    try {
+                        const fileResp = await fetch(`/api/file/${currentReviewedFileId}`);
+                        const fileData = await fileResp.json();
+                        if (fileResp.ok && fileData.code === 200 && fileData.data) {
+                            const uf = fileData.data;
+                            if (!reviewedFileInfoEl) {
+                                reviewedFileInfoEl = document.createElement('div');
+                                reviewedFileInfoEl.style.marginTop = '10px';
+                                reviewedFileInfoEl.style.fontSize = '0.9em';
+                                reviewedFileInfoEl.style.color = '#555';
+                                resultDiv.appendChild(reviewedFileInfoEl);
+                            }
+                            const downloadUrl = `/api/file/download/${uf.fileId}`;
+                            reviewedFileInfoEl.innerHTML = `
+                                <p><strong>已生成审查文件</strong></p>
+                                <p>文件 ID：${uf.fileId}</p>
+                                <p>文件名：${uf.originalFileName}</p>
+                                <p>存储路径：${uf.storagePath}</p>
+                                <p style="margin-top:8px;">
+                                    <a href="${downloadUrl}" style="color:#1976d2;text-decoration:none;" download>
+                                        点击这里下载审查文件
+                                    </a>
+                                </p>
+                            `;
+                        } else {
+                            alert('已生成审查文件，文件ID：' + currentReviewedFileId);
+                        }
+                    } catch (e) {
+                        alert('已生成审查文件，文件ID：' + currentReviewedFileId);
+                    }
+                } else {
+                    alert('生成审查文件失败：' + (data.message || resp.status));
+                }
+            } catch (e) {
+                alert('生成审查文件时出错：' + e.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '生成带注释的审查文件';
+            }
+        });
+
+        // 确认保存审查文件（成功后隐藏操作按钮）
+        confirmBtn.addEventListener('click', async () => {
+            if (!currentReviewedFileId) {
+                alert('请先点击“生成带注释的审查文件”。');
+                return;
+            }
+            try {
+                const resp = await fetch(`/api/reviews/files/${currentReviewedFileId}/confirm`, {
+                    method: 'POST'
+                });
+                const data = await resp.json();
+                if (resp.ok && data.code === 200) {
+                    alert('已确认保存审查文件。');
+                    // 确认后本次审查流程结束，隐藏按钮
+                    actionsDiv.style.display = 'none';
+                } else {
+                    alert('确认失败：' + (data.message || resp.status));
+                }
+            } catch (e) {
+                alert('确认时出错：' + e.message);
+            }
+        });
+
+        // 放弃审查文件（成功后隐藏操作按钮）
+        discardBtn.addEventListener('click', async () => {
+            if (!currentReviewedFileId) {
+                alert('当前没有可放弃的审查文件，请先生成。');
+                return;
+            }
+            if (!confirm('确认要放弃并删除该审查文件吗？')) {
+                return;
+            }
+            try {
+                const resp = await fetch(`/api/reviews/files/${currentReviewedFileId}/discard`, {
+                    method: 'POST'
+                });
+                const data = await resp.json();
+                if (resp.ok && data.code === 200) {
+                    alert('已放弃并删除审查文件。');
+                    currentReviewedFileId = null;
+                    // 放弃后隐藏按钮
+                    actionsDiv.style.display = 'none';
+                } else {
+                    alert('放弃失败：' + (data.message || resp.status));
+                }
+            } catch (e) {
+                alert('放弃时出错：' + e.message);
+            }
+        });
+    </script>
+</body>
+</html>

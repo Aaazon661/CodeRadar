@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: coderadar-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: CodeRadar
+      TZ: Asia/Shanghai
+    # 不再暴露到宿主机，避免与本机 MySQL 端口冲突
+    # 如需在宿主机访问，可改成 "3307:3306" 之类
+    # ports:
+    #   - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  coderadar:
+    build: .
+    container_name: coderadar-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/CodeRadar?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123456
+      AI_API_KEY: sk-cdfd76cdd3e24b6d90150885656574b6
+    volumes:
+      - ./uploads:/app/uploads
+      - ./reviews:/app/reviews
+    restart: unless-stopped
+
+volumes:
+  mysql-data:

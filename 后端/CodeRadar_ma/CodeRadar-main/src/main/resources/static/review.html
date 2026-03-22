@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeRadar - 审查结果查看</title>
+    <style>
+        :root {
+            --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", "PingFang SC",
+                "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+                monospace;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: var(--font-sans);
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 24px;
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .title {
+            font-size: 1.6rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+        .meta {
+            font-size: 0.9rem;
+            line-height: 1.35;
+            color: #64748b;
+        }
+        .summary {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .toolbar button {
+            flex: 0 0 auto;
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #fff;
+            background: #667eea;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+        }
+        .toolbar button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(102,126,234,0.4);
+        }
+        .toolbar button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .back-btn {
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            color: #334155;
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+        }
+        .back-btn:hover {
+            background: #e5e7eb;
+            box-shadow: 0 2px 6px rgba(148,163,184,0.4);
+            transform: translateY(-1px);
+        }
+        .back-btn:focus-visible {
+            outline: 2px solid rgba(79, 70, 229, 0.55);
+            outline-offset: 2px;
+        }
+        .btn-secondary {
+            background: #4caf50;
+        }
+        .btn-danger {
+            background: #f44336;
+        }
+        .btn-ghost {
+            background: #9e9e9e;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
+            min-height: 400px;
+        }
+        .code-panel, .suggestion-panel {
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            background: #fafafa;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.9rem;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-body {
+            flex: 1;
+            overflow: auto;
+            background: #0b1020;
+            color: #e0e0e0;
+            font-family: "Fira Code", var(--font-mono);
+            font-size: 0.85rem;
+        }
+        .panel-body-inner {
+            padding: 8px 12px 12px 12px;
+        }
+        .code-line {
+            display: grid;
+            grid-template-columns: 40px 1fr;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 2px 0;
+        }
+        .line-number {
+            text-align: right;
+            color: #6b7280;
+            user-select: none;
+        }
+        .line-content {
+            white-space: pre;
+            overflow-wrap: normal;
+        }
+        .code-line.has-suggestion .line-number {
+            color: #f97373;
+            font-weight: 600;
+        }
+        .suggestion-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 0 6px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .suggestion-panel {
+            background: #ffffff;
+        }
+        .suggestions-list {
+            padding: 8px 10px 10px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+        .suggestion-item {
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            border-left: 4px solid #9ca3af;
+            background: #f9fafb;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .suggestion-item:hover {
+            background: #eef2ff;
+            transform: translateY(-1px);
+        }
+        .suggestion-item.active {
+            background: #e0e7ff;
+            border-left-color: #4f46e5;
+        }
+        .suggestion-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+            font-size: 0.82rem;
+            line-height: 1.2;
+            color: #64748b;
+        }
+        .suggestion-left {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .category-pill {
+            display: inline-flex;
+            align-items: center;
+            height: 20px;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            background: #f1f5f9;
+            color: #334155;
+            white-space: nowrap;
+        }
+        /* 所有分类标签使用统一底色，由 .category-pill 控制，不再按类型区分颜色，保持风格一致 */
+        .line-pill {
+            white-space: nowrap;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .severity-tag {
+            padding: 0 6px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            color: #fff;
+        }
+        .sev-high { background: #f97373; }
+        .sev-medium { background: #fb923c; }
+        .sev-low { background: #22c55e; }
+        .empty-tip {
+            color: #6b7280;
+            font-size: 0.85rem;
+            padding: 12px;
+        }
+        .status-bar {
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-align: right;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="title">📄 审查结果查看</div>
+                <div class="meta" id="metaInfo">正在加载审查信息...</div>
+            </div>
+            <button class="back-btn" id="backBtn">← 返回上传页面</button>
+        </div>
+
+        <div class="summary" id="summaryBox">
+            正在加载 AI 审查总结...
+        </div>
+
+        <div class="toolbar">
+            <button id="reReviewBtn">开始 AI 审查</button>
+            <button id="applyDownloadBtn" class="btn-secondary">选择建议并下载审查文件</button>
+            <button id="discardBtn" class="btn-danger">放弃</button>
+        </div>
+
+        <div class="content">
+            <div class="code-panel">
+                <div class="panel-header">
+                    <span id="fileInfo">代码文件</span>
+                    <span id="lineInfo">行数：0</span>
+                </div>
+                <div class="panel-body">
+                    <div class="panel-body-inner" id="codeContainer">
+                        <div class="empty-tip">正在加载代码内容...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="suggestion-panel">
+                <div class="panel-header">
+                    <span>按行展示审查建议</span>
+                    <span id="sugCount">0 条建议</span>
+                </div>
+                <div class="suggestions-list" id="suggestionsContainer">
+                    <div class="empty-tip">暂无建议。</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="statusBar">
+            就绪
+        </div>
+    </div>
+
+    <script>
+        const metaInfo = document.getElementById('metaInfo');
+        const summaryBox = document.getElementById('summaryBox');
+        const fileInfo = document.getElementById('fileInfo');
+        const lineInfo = document.getElementById('lineInfo');
+        const codeContainer = document.getElementById('codeContainer');
+        const suggestionsContainer = document.getElementById('suggestionsContainer');
+        const sugCount = document.getElementById('sugCount');
+        const statusBar = document.getElementById('statusBar');
+
+        const backBtn = document.getElementById('backBtn');
+        const reReviewBtn = document.getElementById('reReviewBtn');
+        const discardBtn = document.getElementById('discardBtn');
+        const applyDownloadBtn = document.getElementById('applyDownloadBtn');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialResultId = urlParams.get('resultId');
+
+        let currentResultId = initialResultId ? Number(initialResultId) : null;
+        let currentFileId = null;
+        let currentUserId = null;
+        let currentModel = 'deepseek-chat';
+        let currentReviewedFileId = null;
+        let suggestionsByLine = {};
+        let allSuggestions = [];
+        let originalContent = '';
+        let originalFileName = 'file.txt';
+        let originalFileType = '';
+
+        backBtn.addEventListener('click', () => {
+            // 优先返回历史记录，避免重新加载登录页
+            if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+                window.location.href = document.referrer;
+            } else {
+                window.location.href = '/index.html';
+            }
+        });
+
+        function setStatus(text) {
+            statusBar.textContent = text;
+        }
+
+        function groupSuggestionsByLine(suggestions) {
+            const map = {};
+            suggestions.forEach(s => {
+                let line = s.lineStart;
+                if (!line && s.lineNumbers) {
+                    try {
+                        const first = s.lineNumbers.split(/[-,]/)[0].trim();
+                        line = parseInt(first, 10);
+                    } catch (e) {
+                        line = null;
+                    }
+                }
+                if (!line || line <= 0) return;
+                if (!map[line]) map[line] = [];
+                map[line].push(s);
+            });
+            return map;
+        }
+
+        function renderCode(content, suggestions) {
+            const lines = (content || '').split(/\r?\n/);
+            suggestionsByLine = groupSuggestionsByLine(suggestions || []);
+
+            codeContainer.innerHTML = '';
+
+            if (!content) {
+                const div = document.createElement('div');
+                div.className = 'empty-tip';
+                div.textContent = '文件内容为空。';
+                codeContainer.appendChild(div);
+                lineInfo.textContent = '行数：0';
+                return;
+            }
+
+            lines.forEach((text, idx) => {
+                const lineNumber = idx + 1;
+                const lineDiv = document.createElement('div');
+                const hasSug = !!suggestionsByLine[lineNumber];
+                lineDiv.className = 'code-line' + (hasSug ? ' has-suggestion' : '');
+                lineDiv.dataset.line = String(lineNumber);
+
+                const numSpan = document.createElement('span');
+                numSpan.className = 'line-number';
+                numSpan.textContent = lineNumber;
+
+                const contentSpan = document.createElement('span');
+                contentSpan.className = 'line-content';
+                contentSpan.textContent = text === '' ? ' ' : text;
+
+                lineDiv.appendChild(numSpan);
+                lineDiv.appendChild(contentSpan);
+
+                lineDiv.addEventListener('click', () => {
+                    highlightLine(lineNumber);
+                    scrollToSuggestionByLine(lineNumber);
+                });
+
+                codeContainer.appendChild(lineDiv);
+            });
+
+            lineInfo.textContent = '行数：' + lines.length;
+        }
+
+        function renderSuggestions(suggestions) {
+            suggestionsContainer.innerHTML = '';
+
+            if (!suggestions || suggestions.length === 0) {
+                const div = document.createElement('div');
+                div.className = 'empty-tip';
+                div.textContent = '✨ 代码质量良好，暂无建议。';
+                suggestionsContainer.appendChild(div);
+                sugCount.textContent = '0 条建议';
+                return;
+            }
+
+            sugCount.textContent = suggestions.length + ' 条建议';
+
+            suggestions.forEach((s, index) => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.dataset.line = s.lineStart || '';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                // 默认不选中，让用户显式选择需要应用的建议
+                checkbox.checked = false;
+                checkbox.style.marginRight = '6px';
+                checkbox.dataset.index = String(index);
+
+                const meta = document.createElement('div');
+                meta.className = 'suggestion-meta';
+
+                // 使用与注释一致的可读标签，例如「安全性风险」「逻辑错误」
+                const prettyCategory = mapPrettyCategory(s.category);
+
+                const categorySpan = document.createElement('span');
+                categorySpan.className = 'category-pill ' + mapCategoryClass(prettyCategory);
+                categorySpan.textContent = prettyCategory;
+
+                const lineSpan = document.createElement('span');
+                lineSpan.className = 'line-pill';
+                lineSpan.textContent = '行 ' + (s.lineNumbers || '-');
+
+                const right = document.createElement('span');
+                const sev = (s.severity || 'MEDIUM').toUpperCase();
+                const sevSpan = document.createElement('span');
+                sevSpan.className = 'severity-tag ' +
+                    (sev === 'HIGH' ? 'sev-high' : sev === 'LOW' ? 'sev-low' : 'sev-medium');
+                sevSpan.textContent = sev;
+                right.appendChild(sevSpan);
+
+                const leftContainer = document.createElement('span');
+                leftContainer.className = 'suggestion-left';
+                leftContainer.appendChild(checkbox);
+                leftContainer.appendChild(categorySpan);
+                leftContainer.appendChild(lineSpan);
+
+                meta.appendChild(leftContainer);
+                meta.appendChild(right);
+
+                const content = document.createElement('div');
+                content.textContent = s.suggestion || '';
+
+                item.appendChild(meta);
+                item.appendChild(content);
+
+                item.addEventListener('click', () => {
+                    const line = s.lineStart || null;
+                    if (line) {
+                        highlightLine(line);
+                    }
+                    document.querySelectorAll('.suggestion-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                });
+
+                suggestionsContainer.appendChild(item);
+            });
+        }
+
+        function highlightLine(lineNumber) {
+            document.querySelectorAll('.code-line').forEach(el => {
+                if (Number(el.dataset.line) === Number(lineNumber)) {
+                    el.classList.add('has-suggestion');
+                    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            });
+        }
+
+        function scrollToSuggestionByLine(lineNumber) {
+            const target = Array.from(document.querySelectorAll('.suggestion-item'))
+                .find(el => Number(el.dataset.line || 0) === Number(lineNumber));
+            if (target) {
+                target.classList.add('active');
+                target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                setTimeout(() => {
+                    target.classList.remove('active');
+                }, 1200);
+            }
+        }
+
+        async function loadDetail(resultId) {
+            if (!resultId) {
+                metaInfo.textContent = '缺少 resultId，无法加载审查详情。';
+                setStatus('加载失败：缺少 resultId');
+                return;
+            }
+            setStatus('正在加载审查详情...');
+            try {
+                const resp = await fetch(`/api/reviews/${resultId}/detail`);
+                const data = await resp.json();
+                if (!resp.ok || data.code !== 200 || !data.data) {
+                    metaInfo.textContent = '加载审查详情失败。';
+                    summaryBox.textContent = data.message || '无法获取审查详情。';
+                    setStatus('加载审查详情失败');
+                    return;
+                }
+
+                const result = data.data.result;
+                const suggestions = data.data.suggestions || [];
+
+                allSuggestions = suggestions;
+
+                currentResultId = result.resultId;
+                currentFileId = result.fileId;
+                currentUserId = result.userId;
+                currentModel = result.model || currentModel;
+
+                metaInfo.textContent = `用户 ID：${currentUserId} · 文件 ID：${currentFileId} · 模型：${currentModel}`;
+                summaryBox.textContent = result.summary || 'AI 审查完成。';
+
+                await loadFileAndRender(currentFileId, suggestions);
+
+                setStatus('审查详情加载完成');
+            } catch (e) {
+                metaInfo.textContent = '加载审查详情时出错。';
+                summaryBox.textContent = e.message || '未知错误';
+                setStatus('加载审查详情时出错');
+            }
+        }
+
+        async function loadFileAndRender(fileId, suggestions) {
+            if (!fileId) {
+                fileInfo.textContent = '文件信息获取失败（缺少 fileId）';
+                renderCode('', suggestions);
+                renderSuggestions(suggestions);
+                return;
+            }
+            setStatus('正在加载文件内容...');
+            try {
+                const resp = await fetch(`/api/file/${fileId}`);
+                const data = await resp.json();
+                if (!resp.ok || data.code !== 200 || !data.data) {
+                    fileInfo.textContent = `文件 ID：${fileId}（加载失败）`;
+                    renderCode('', suggestions);
+                    renderSuggestions(suggestions);
+                    setStatus('加载文件失败');
+                    return;
+                }
+                const file = data.data;
+                fileInfo.textContent = `${file.originalFileName || '未命名文件'}（ID：${file.fileId}）`;
+
+                originalContent = file.fileContent || '';
+                originalFileName = file.originalFileName || 'file.txt';
+                originalFileType = file.fileType || '';
+
+                renderCode(originalContent, suggestions);
+                renderSuggestions(suggestions);
+                setStatus('文件与建议加载完成');
+            } catch (e) {
+                fileInfo.textContent = `文件 ID：${fileId}（加载失败）`;
+                renderCode('', suggestions);
+                renderSuggestions(suggestions);
+                setStatus('加载文件时出错');
+            }
+        }
+
+        function getCommentPrefix(fileType) {
+            if (!fileType) return '//';
+            const t = fileType.toLowerCase();
+            if (['java', 'js', 'ts', 'cpp', 'c'].includes(t)) return '//';
+            if (['py', 'sh'].includes(t)) return '#';
+            if (['html', 'xml'].includes(t)) return '<!--';
+            return '//';
+        }
+
+        function mapPrettyCategory(rawCategory) {
+            if (!rawCategory) return '代码问题';
+            const c = rawCategory.trim();
+            if (!c) return '代码问题';
+            const lower = c.toLowerCase();
+
+            // 英文关键词映射
+            if (lower.includes('security')) return '安全风险';
+            if (lower.includes('performance')) return '性能问题';
+            if (lower.includes('readability')) return '可读性问题';
+            if (lower.includes('style')) return '代码风格';
+            if (lower.includes('logic')) return '逻辑错误';
+            if (lower.includes('bug')) return '潜在 Bug';
+            if (lower.includes('reliab')) return '可靠性问题';
+            if (lower.includes('maintainab')) return '可维护性问题';
+            if (lower.includes('robust')) return '健壮性问题';
+            if (lower.includes('correct')) return '正确性问题';
+
+            // 中文关键词映射（统一补齐“问题”后缀）
+            if (c.includes('安全')) return '安全风险';
+            if (c.includes('性能')) return '性能问题';
+            if (c.includes('可读')) return '可读性问题';
+            if (c.includes('风格')) return '代码风格';
+            if (c.includes('逻辑')) return '逻辑错误';
+            if (c.includes('可靠性')) return '可靠性问题';
+            if (c.includes('可维护性')) return '可维护性问题';
+            if (c.includes('健壮性')) return '健壮性问题';
+            if (c.includes('正确性')) return '正确性问题';
+            if (c.includes('并发') || c.includes('线程')) return '并发问题';
+
+            return c;
+        }
+
+        function mapCategoryClass(prettyCategory) {
+            const c = (prettyCategory || '').toLowerCase();
+            if (c.includes('安全')) return 'security';
+            if (c.includes('性能')) return 'performance';
+            if (c.includes('可读')) return 'readability';
+            if (c.includes('风格')) return 'style';
+            if (c.includes('逻辑')) return 'logic';
+            if (c.includes('bug')) return 'bug';
+            return '';
+        }
+
+        function formatSuggestionAsComment(sug, fileType) {
+            const prefix = getCommentPrefix(fileType);
+            const categoryLabel = mapPrettyCategory(sug.category);
+            const lineInfo = sug.lineNumbers ? `行${sug.lineNumbers}` : '相关行';
+            // 与后端格式保持一致：// ("安全风险"):    行35-41: 建议
+            return `${prefix} ("${categoryLabel}"):    ${lineInfo}: ${sug.suggestion || ''}`;
+        }
+
+        function stripExistingSuggestionComments(baseContent, fileType) {
+            const prefix = getCommentPrefix(fileType);
+            const lines = baseContent.split(/\r?\n/);
+            const cleaned = lines.filter(line => {
+                const trimmed = line.trimStart();
+                // 只删除之前生成的形如 "// [分类-严重程度] 行号: 建议" 这样的审查注释
+                // 必须同时满足：以注释前缀开头、包含 [、包含 ]、包含 :（这是我们的审查注释格式）
+                if (trimmed.startsWith(prefix)) {
+                    const afterPrefix = trimmed.substring(prefix.length).trim();
+                    // 检查是否符合审查注释格式：[分类-严重程度] 行号: 建议
+                    if (afterPrefix.startsWith('[') && afterPrefix.includes(']') && afterPrefix.includes(':')) {
+                        return false; // 这是审查注释，删除
+                    }
+                }
+                return true; // 保留其他所有行（包括普通注释和代码）
+            });
+            return cleaned.join('\n');
+        }
+
+        function buildReviewedContent(baseContent, selectedSuggestions, fileType) {
+            // 先把旧的审查注释去掉，避免之前下载过的审查文件再次上传时叠加所有旧建议
+            const baseWithoutComments = stripExistingSuggestionComments(baseContent, fileType);
+
+            console.log('buildReviewedContent: 传入的建议数量 =', selectedSuggestions ? selectedSuggestions.length : 0);
+            
+            if (!selectedSuggestions || selectedSuggestions.length === 0) {
+                console.log('buildReviewedContent: 没有选中的建议，返回原始代码');
+                return baseWithoutComments;
+            }
+
+            // 只处理传入的 selectedSuggestions，不访问 allSuggestions
+            const suggestionsCopy = selectedSuggestions.slice().map(s => {
+                let line = s.lineStart;
+                if (!line && s.lineNumbers) {
+                    try {
+                        const first = s.lineNumbers.split(/[-,]/)[0].trim();
+                        line = parseInt(first, 10);
+                    } catch (e) {
+                        line = null;
+                    }
+                }
+                return Object.assign({}, s, { lineStart: line });
+            }).filter(s => s.lineStart && s.lineStart > 0);
+
+            console.log('buildReviewedContent: 处理后的有效建议数量 =', suggestionsCopy.length);
+            suggestionsCopy.sort((a, b) => a.lineStart - b.lineStart);
+
+            const lines = baseWithoutComments.split(/\r?\n/);
+            let result = '';
+            let idx = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                const currentLine = i + 1;
+                // 只插入当前选中的建议
+                while (idx < suggestionsCopy.length && suggestionsCopy[idx].lineStart === currentLine) {
+                    result += formatSuggestionAsComment(suggestionsCopy[idx], fileType) + '\n';
+                    idx++;
+                }
+                result += lines[i] + '\n';
+            }
+
+            // 添加剩余的建议到文件末尾（如果有行号超出文件行数的情况）
+            while (idx < suggestionsCopy.length) {
+                result += formatSuggestionAsComment(suggestionsCopy[idx], fileType) + '\n';
+                idx++;
+            }
+
+            console.log('buildReviewedContent: 最终生成的文件包含', idx, '条建议注释');
+            return result;
+        }
+
+        reReviewBtn.addEventListener('click', async () => {
+            if (!currentUserId || !currentFileId) {
+                alert('当前缺少用户或文件信息，无法发起审查。');
+                return;
+            }
+            reReviewBtn.disabled = true;
+            reReviewBtn.textContent = '正在重新审查...';
+            setStatus('正在重新发起 AI 审查...');
+            try {
+                const resp = await fetch('/api/reviews/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        fileId: currentFileId,
+                        background: null,
+                        model: currentModel || 'deepseek-chat'
+                    })
+                });
+                const data = await resp.json();
+                if (!resp.ok || data.code !== 200 || !data.data) {
+                    alert('重新审查失败：' + (data.message || resp.status));
+                    setStatus('重新审查失败');
+                    return;
+                }
+                const newResultId = data.data;
+                setStatus('重新审查完成，正在刷新页面...');
+                window.location.href = `/review.html?resultId=${encodeURIComponent(newResultId)}`;
+            } catch (e) {
+                alert('重新审查请求出错：' + e.message);
+                setStatus('重新审查请求出错');
+            } finally {
+                reReviewBtn.disabled = false;
+                reReviewBtn.textContent = '开始 AI 审查';
+            }
+        });
+        discardBtn.addEventListener('click', async () => {
+            if (!currentReviewedFileId) {
+                alert('当前没有可放弃的审查文件。');
+                return;
+            }
+            if (!confirm('确认要放弃并删除已生成的审查文件吗？')) {
+                return;
+            }
+            discardBtn.disabled = true;
+            discardBtn.textContent = '正在放弃...';
+            setStatus('正在放弃并删除审查文件...');
+            try {
+                const resp = await fetch(`/api/reviews/files/${currentReviewedFileId}/discard`, {
+                    method: 'POST'
+                });
+                const data = await resp.json();
+                if (!resp.ok || data.code !== 200) {
+                    alert('放弃失败：' + (data.message || resp.status));
+                    setStatus('放弃审查文件失败');
+                    return;
+                }
+                currentReviewedFileId = null;
+                alert('已放弃并删除审查文件。');
+                setStatus('审查文件已放弃并删除');
+            } catch (e) {
+                alert('放弃时出错：' + e.message);
+                setStatus('放弃审查文件时出错');
+            } finally {
+                discardBtn.disabled = false;
+                discardBtn.textContent = '放弃';
+            }
+        });
+
+        applyDownloadBtn.addEventListener('click', async () => {
+            if (!originalContent) {
+                alert('当前文件内容为空或尚未加载完成。');
+                return;
+            }
+            
+            // 获取所有勾选的复选框
+            const checkedBoxes = Array.from(document.querySelectorAll('.suggestion-item input[type="checkbox"]:checked'));
+            const checkedIndexes = checkedBoxes
+                .map(inp => parseInt(inp.dataset.index, 10))
+                .filter(i => !isNaN(i) && i >= 0 && i < allSuggestions.length);
+
+            console.log('总建议数:', allSuggestions.length);
+            console.log('勾选的索引:', checkedIndexes);
+            
+            if (checkedIndexes.length === 0) {
+                if (!confirm('当前未选择任何建议，是否仅下载原始代码文件？')) {
+                    return;
+                }
+            }
+
+            // 只使用勾选的建议
+            const selected = checkedIndexes.map(i => {
+                const sug = allSuggestions[i];
+                if (sug) {
+                    console.log(`选中建议 ${i}: 行 ${sug.lineNumbers || sug.lineStart}, 分类: ${sug.category}`);
+                }
+                return sug;
+            }).filter(Boolean);
+            
+            console.log('实际使用的建议数量:', selected.length);
+            
+            // 1. 先在后端生成并保存“审查文件”（只基于选中的建议）
+            try {
+                setStatus('正在生成审查文件...');
+                const body = checkedIndexes.length > 0
+                    ? checkedIndexes
+                        .map(i => allSuggestions[i])
+                        .filter(Boolean)
+                        .map(s => s.suggestionId)
+                        .filter(id => id != null)
+                    : null;
+
+                const resp = await fetch(`/api/reviews/${encodeURIComponent(currentResultId || initialResultId || '')}/generate-file`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: body && body.length > 0 ? JSON.stringify(body) : 'null'
+                });
+                const data = await resp.json();
+                if (!resp.ok || data.code !== 200 || !data.data) {
+                    alert('生成审查文件失败：' + (data.message || resp.status));
+                    setStatus('生成审查文件失败');
+                    return;
+                }
+
+                const newFileId = data.data;
+                currentReviewedFileId = newFileId;
+                console.log('后端已生成审查文件，fileId =', newFileId);
+
+                // 2. 再在前端基于相同的选中建议生成一份本地下载文件，供用户立即使用
+                const newContent = buildReviewedContent(originalContent, selected, originalFileType);
+                const blob = new Blob([newContent], { type: 'text/plain;charset=utf-8' });
+
+                let downloadName = originalFileName || 'file.txt';
+                const dotIndex = downloadName.lastIndexOf('.');
+                if (dotIndex > 0) {
+                    const name = downloadName.substring(0, dotIndex);
+                    const ext = downloadName.substring(dotIndex);
+                    downloadName = name + '_reviewed' + ext;
+                } else {
+                    downloadName = downloadName + '_reviewed';
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = downloadName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                setStatus(`已生成并保存审查文件（ID=${newFileId}），同时完成本地下载`);
+            } catch (e) {
+                console.error('applyDownloadBtn 处理失败', e);
+                alert('生成或下载审查文件时出错：' + e.message);
+                setStatus('生成或下载审查文件时出错');
+            }
+        });
+
+        if (!initialResultId) {
+            metaInfo.textContent = '缺少 resultId，请从上传页面重新进入本页面。';
+            summaryBox.textContent = '无法加载审查详情，请返回上传页面重新开始。';
+            setStatus('缺少 resultId');
+        } else {
+            loadDetail(initialResultId);
+        }
+    </script>
+</body>
+</html>
+
+

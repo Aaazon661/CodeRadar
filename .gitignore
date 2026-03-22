@@ -1,0 +1,28 @@
+# 依赖与构建产物
+**/node_modules/
+**/target/
+**/dist/
+**/.vite/
+
+# IDE
+.idea/
+**/.idea/
+.vscode/
+*.iml
+
+# 日志与本地配置
+*.log
+.env
+.env.*
+!.env.example
+
+# 上传与临时文件
+**/uploads/
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
