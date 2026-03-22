@@ -1,6 +1,8 @@
 package org.coderadar;
 
+import org.coderadar.dao.SuggestionDAO;
 import org.coderadar.dao.UserDAO;
+import org.coderadar.pojo.Suggestion;
 import org.coderadar.service.FileService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,8 @@ class CodeRadarApplicationTests {
     private UserDAO userDAO;
     @Autowired
     private FileService fileService;
+    @Autowired
+    private SuggestionDAO suggestionDAO;
 
     @Test
     void contextLoads() {
@@ -30,5 +34,11 @@ class CodeRadarApplicationTests {
         System.out.println(fileType);
     }
 
+    @Test
+    void testLineStart(){
+        Suggestion sug = suggestionDAO.findBySuggestionId(232L);
+        Integer sugLine = sug.getLineStart();
+        System.out.println(sugLine);
+    }
 
 }

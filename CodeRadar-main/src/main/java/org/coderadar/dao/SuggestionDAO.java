@@ -59,4 +59,7 @@ public interface SuggestionDAO {
 
     @Delete("DELETE FROM suggestion WHERE suggestion_id = #{suggestionId}")
     int deleteBySuggestionId(Long suggestionId);
+
+    @Select("SELECT * FROM suggestion WHERE suggestion_id = #{suggestionId}")
+    Suggestion findBySuggestionId(Long suggestionId);
 }
