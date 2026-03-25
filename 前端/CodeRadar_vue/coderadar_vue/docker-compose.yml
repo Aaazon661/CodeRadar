@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # 前端服务
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coderadar-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - database
+    networks:
+      - coderadar-network
+    restart: unless-stopped
+
+  # 后端服务（暂时注释掉）
+  # coderadar-backend:
+  #   build:
+  #     context: D:\答辩材料\CodeRadar\CodeRadar\源码\后端
+  #     dockerfile: Dockerfile
+  #   container_name: coderadar-backend
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - database
+  #   environment:
+  #     - SPRING_DATASOURCE_URL=jdbc:mysql://database:3306/coderadar?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf-8
+  #     - SPRING_DATASOURCE_USERNAME=root
+  #     - SPRING_DATASOURCE_PASSWORD=root123
+  #     - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+  #     - SPRING_PROFILES_ACTIVE=prod
+  #   networks:
+  #     - coderadar-network
+  #   restart: unless-stopped
+
+    # 数据库服务
+  database:
+    image: mysql:8.0
+    container_name: coderadar-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: coderadar
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    # ports:
+    #   - "3306:3306"
+    networks:
+      - coderadar-network
+    restart: unless-stopped
+
+
+networks:
+  coderadar-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
